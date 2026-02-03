@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Valentine Quest 💘</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body {
+  margin: 0;
+  height: 100vh;
+  background: linear-gradient(135deg, #ff758c, #ff7eb3);
+  font-family: 'Comic Sans MS', 'Poppins', sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+}
+
+.card {
+  background: white;
+  padding: 25px;
+  border-radius: 25px;
+  width: 90%;
+  max-width: 380px;
+  text-align: center;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.25);
+  animation: pop 0.5s ease;
+}
+
+@keyframes pop {
+  from { transform: scale(0.7); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.progress-wrap { margin-bottom: 15px; }
+.progress-text { font-size: 16px; margin-bottom: 6px; }
+
+.progress-bar {
+  height: 12px;
+  background: #eee;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: #ff3f6c;
+  transition: width 0.5s;
+}
+
+h1 { color: #ff3f6c; }
+p { font-size: 18px; color: #444; }
+
+.buttons {
+  margin-top: 25px;
+  position: relative;
+  height: 180px;
+}
+
+button {
+  padding: 12px 22px;
+  border: none;
+  border-radius: 30px;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+#yes { background: #ff3f6c; color: white; }
+#no {
+  background: #ccc;
+  color: #333;
+  position: absolute;
+  left: 50%;
+  top: 65px;
+  transform: translateX(-50%);
+}
+
+.fake {
+  background: #ddd;
+  position: absolute;
+}
+
+.angry {
+  background: red !important;
+  color: white !important;
+  animation: shake 0.3s infinite;
+}
+
+@keyframes shake {
+  0% { transform: translateX(-50%) rotate(0); }
+  50% { transform: translateX(-52%) rotate(-2deg); }
+}
+
+.blow {
+  animation: fly 0.7s forwards;
+}
+
+@keyframes fly {
+  to { transform: translate(300px,-300px) rotate(720deg); opacity:0; }
+}
+
+.heart {
+  position: fixed;
+  bottom: 0;
+  font-size: 24px;
+  animation: float 4s linear infinite;
+}
+
+@keyframes float {
+  to { transform: translateY(-100vh); opacity: 0; }
+}
+</style>
+</head>
+<body>
+
+<div class="card" id="card"></div>
+
+<script>
+/* 🎵 SOUND ENGINE */
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+function playSound(freq, type="sine", dur=0.15, vol=0.2) {
+  const o = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  o.type = type;
+  o.frequency.value = freq;
+  g.gain.value = vol;
+  o.connect(g);
+  g.connect(audioCtx.destination);
+  o.start();
+  o.stop(audioCtx.currentTime + dur);
+}
+
+function yesSound() { playSound(880,"triangle",0.2,0.25); }
+function noMoveSound() { playSound(400,"square",0.05,0.1); }
+function angrySound() { playSound(120,"sawtooth",0.4,0.3); }
+function boomSound() { playSound(60,"sawtooth",0.6,0.4); }
+function sparkleSound() { playSound(1200,"sine",0.15,0.15); }
+
+/* GAME LOGIC */
+let step = -1;
+let noExploded = false;
+let finalNoClicks = 0;
+let hideInterval;
+
+const card = document.getElementById("card");
+
+const steps = [
+  { t:"Question 1 🤔", q:"Do you think I’m kinda cute?", y:"Obviously 😌", n:"Nope" },
+  { t:"Serious Question 🚨", q:"Should we go on a Valentine’s date?", y:"YES 😍", n:"NO 😤" },
+  { t:"Final Question 💖", q:"Will you be my Valentine? 🌹", y:"YES FOREVER 💘", n:"No 😐" }
+];
+
+function progress() {
+  const moods=["😐","🙂","😊","😍","💖"];
+  return `
+  <div class="progress-wrap">
+    <div class="progress-text">Mood: ${moods[step+1]}</div>
+    <div class="progress-bar">
+      <div class="progress-fill" style="width:${((step+1)/steps.length)*100}%"></div>
+    </div>
+  </div>`;
+}
+
+/* Hide & Seek */
+function hideAndSeek() {
+  card.innerHTML = `
+    <h1>Mini Game 🎯</h1>
+    <p>Find the <b>YES</b> to start 😈</p>
+    <div class="buttons" id="area"></div>
+  `;
+  const area = document.getElementById("area");
+
+  for(let i=0;i<4;i++){
+    const f=document.createElement("button");
+    f.className="fake";
+    f.innerText="YES";
+    f.style.left=Math.random()*240+"px";
+    f.style.top=Math.random()*120+"px";
+    area.appendChild(f);
+  }
+
+  const yes=document.createElement("button");
+  yes.id="yes";
+  yes.innerText="YES 😄";
+  area.appendChild(yes);
+
+  hideInterval=setInterval(()=>{
+    yes.style.left=Math.random()*240+"px";
+    yes.style.top=Math.random()*120+"px";
+    noMoveSound();
+  },900);
+
+  yes.onclick=()=>{
+    yesSound();
+    clearInterval(hideInterval);
+    step=0;
+    render();
+  };
+}
+
+function render() {
+  card.innerHTML=`
+    ${progress()}
+    <h1>${steps[step].t}</h1>
+    <p>${steps[step].q}</p>
+    <div class="buttons">
+      <button id="yes">${steps[step].y}</button>
+      <button id="no">${steps[step].n}</button>
+    </div>
+  `;
+
+  document.getElementById("yes").onclick=()=>{
+    yesSound();
+    step++;
+    step<steps.length ? render() : finish();
+  };
+
+  const no=document.getElementById("no");
+
+  if(step<1){
+    no.onmouseover=()=>{ noMoveSound(); moveNo(no); };
+  }
+
+  if(step===1 && !noExploded){
+    no.onclick=()=>{
+      angrySound();
+      no.classList.add("angry");
+      no.innerText="HOW DARE YOU 😡";
+      setTimeout(()=>{
+        boomSound();
+        no.remove();
+        noExploded=true;
+        render();
+      },700);
+    };
+  }
+
+  if(step===2){
+    no.onclick=()=>{
+      finalNoClicks++;
+      if(finalNoClicks>3){
+        boomSound();
+        no.classList.add("blow");
+        setTimeout(()=>no.remove(),600);
+      }
+    };
+  }
+}
+
+function moveNo(btn){
+  btn.style.left=Math.random()*260+"px";
+  btn.style.top=Math.random()*120+"px";
+}
+
+function finish(){
+  card.innerHTML=`
+    <h1>HURRAYYY 😍🎉</h1>
+    <p>I just made your Valentine’s Day 💘</p>
+    <p>See you soon 🌹</p>
+  `;
+  setInterval(()=>{
+    sparkleSound();
+    const h=document.createElement("div");
+    h.className="heart";
+    h.innerText="💖";
+    h.style.left=Math.random()*100+"vw";
+    document.body.appendChild(h);
+    setTimeout(()=>h.remove(),4000);
+  },600);
+}
+
+hideAndSeek();
+</script>
+
+</body>
+</html>
